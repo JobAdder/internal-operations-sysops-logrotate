@@ -39,6 +39,9 @@ $logs = Get-ChildItem -Recurse -Path $LogDirectory -Attributes !Directory -Filte
   $_.LastWriteTime -lt (Get-Date).AddDays($DaysToKeep)  
 }
 
+# limiting our execution time to be 3 hours. We are using up our burst I/O.
+$MaxExecutionTime = (Get-Date).AddHours(3)
+
 foreach ($log in $logs) {
   $name = $log.name 
   $directory = $log.DirectoryName 
@@ -59,6 +62,10 @@ foreach ($log in $logs) {
   Get-ChildItem  $fullZipFile | % {$_.LastWriteTime = $lastWriteTime}
   Remove-Item -Path $fullFileName   
   Move-Item $fullZipFile -Destination $destination -force
+
+  if ((Get-Date) -gt $MaxExecutionTime) {
+    exit 0
+  }
 }
 
 # # upload to s3 from archive directory zipped logs older than 30 days 
